@@ -50,14 +50,15 @@ const publish = async (mamState, data) => {
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-    if(users['farmer'].status == 'offline'){
+    if(req.session.status != 'online'){
+	    req.session.pid_list = []
         res.redirect('/login');
     }else{
         res.redirect('/list');
     }
 });
 
-router.get('/result', function(req, res, next) {
+router.get('/result', async function(req, res, next) {
     try {
         const product_id = req.query.product_id
         const product_data = id2data[product_id]
@@ -77,7 +78,6 @@ router.get('/result', function(req, res, next) {
 
 router.post('/start',async function(req, res, next){
     try {
-        console.log(req.body)
         const key = utils.keyGen(81)
         mamState = mam.init(provider)
         mamState = mam.changeMode(mamState, mode, key)
@@ -86,6 +86,9 @@ router.post('/start',async function(req, res, next){
         const product_name = req.body.pname
         const farmer_name = req.body.username
         const sensor = req.body.sensor
+
+	    req.session.pid_list.push(product_id)
+	    console.log(req.session.pid_list);
     
         const options = {
           url: sensor2url['Farm'],
@@ -111,7 +114,6 @@ router.post('/start',async function(req, res, next){
               product_data["sensor_root"] = data.root
               product_data["sensor_key"] = data.side_key
               id2data[product_id] = product_data
-              product_id_list['farmer'].push(product_id);
               console.log(product_data)
               res.send({
                   status : "success"
@@ -165,6 +167,7 @@ router.get('/stop', async function(req, res, next) {
 
 router.get('/login', function(req, res, next) {
     users['farmer'].status = 'online'
+    req.session.status='online';
     res.render('login', { title: 'Express' });
 });
 
@@ -173,6 +176,6 @@ router.get('/form', function(req, res, next) {
 });
 
 router.get('/list', function(req, res, next) {
-    res.render('list', { data: product_id_list['farmer'] });
+    res.render('list', { data: req.session.pid_list });
 });
 module.exports = router;
